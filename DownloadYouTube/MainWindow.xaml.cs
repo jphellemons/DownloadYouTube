@@ -28,32 +28,63 @@ namespace DownloadYouTube
         public MainWindow()
         {
             InitializeComponent();
+            tbDir.Text = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
         }
 
         private void btnDownload_Click(object sender, RoutedEventArgs e)
         {
             lblMsg.Content = "Download started";
-            var video = (VideoInfo)options.SelectedItem;
-
-            Application.Current.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() => { 
-            
-            if (video.RequiresDecryption)
-                DownloadUrlResolver.DecryptDownloadUrl(video);
-
-            var videoDownloader = new VideoDownloader(video, System.IO.Path.Combine(tbDir.Text, video.Title + video.VideoExtension));
-
-            videoDownloader.DownloadProgressChanged += (s, args) => lblMsg.Content = args.ProgressPercentage;
-            try
+            if (rbvideo.IsChecked == true) // because nullable
             {
-                videoDownloader.Execute();
-                lblMsg.Content = "Completed!";
-                Process.Start(tbDir.Text);
+                var video = (VideoInfo)options.SelectedItem;
+
+                Application.Current.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
+                {
+
+                    if (video.RequiresDecryption)
+                        DownloadUrlResolver.DecryptDownloadUrl(video);
+
+                    var videoDownloader = new VideoDownloader(video, System.IO.Path.Combine(tbDir.Text, video.Title + video.VideoExtension));
+
+                    videoDownloader.DownloadProgressChanged += (s, args) => lblMsg.Content = args.ProgressPercentage;
+                    try
+                    {
+                        videoDownloader.Execute();
+                        lblMsg.Content = "Completed!";
+                        Process.Start(tbDir.Text);
+                    }
+                    catch (UnauthorizedAccessException uae)
+                    {
+                        lblMsg.Content = "You are not allowed to write in this folder, please select an other destination folder to store the video";
+                    }
+                }));
             }
-            catch (UnauthorizedAccessException uae)
+            else
             {
-                lblMsg.Content = "You are not allowed to write in this folder, please select an other destination folder to store the video";
+                IEnumerable<VideoInfo> videoInfos = DownloadUrlResolver.GetDownloadUrls(webBrowser.Source.AbsoluteUri);
+                VideoInfo video = videoInfos.Where(info => info.CanExtractAudio).OrderByDescending(info => info.AudioBitrate).First();
+
+                if (video.RequiresDecryption)
+                {
+                    DownloadUrlResolver.DecryptDownloadUrl(video);
+                }
+
+                var audioDownloader = new AudioDownloader(video, System.IO.Path.Combine(tbDir.Text, video.Title + video.AudioExtension));
+
+                audioDownloader.DownloadProgressChanged += (s, args) => lblMsg.Content = args.ProgressPercentage * 0.85;
+                audioDownloader.AudioExtractionProgressChanged += (s, args) => lblMsg.Content = 85 + args.ProgressPercentage * 0.15;
+                try
+                {
+                    audioDownloader.Execute();
+                    lblMsg.Content = "Completed!";
+                    Process.Start(tbDir.Text);
+                }
+                catch (UnauthorizedAccessException uae)
+                {
+                    lblMsg.Content = "You are not allowed to write in this folder, please select an other destination folder to store the video";
+                    System.Diagnostics.Debug.WriteLine(uae.Message);
+                }
             }
-            }));
         }
 
         private void WebBrowser_Navigated(object sender, NavigationEventArgs e)

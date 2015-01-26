@@ -14,6 +14,7 @@
     <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <WarningLevel>4</WarningLevel>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <IsWebBootstrapper>false</IsWebBootstrapper>
     <PublishUrl>publish\</PublishUrl>
     <Install>true</Install>
     <InstallFrom>Disk</InstallFrom>
@@ -24,9 +25,8 @@
     <UpdatePeriodically>false</UpdatePeriodically>
     <UpdateRequired>false</UpdateRequired>
     <MapFileExtensions>true</MapFileExtensions>
-    <ApplicationRevision>0</ApplicationRevision>
+    <ApplicationRevision>3</ApplicationRevision>
     <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
-    <IsWebBootstrapper>false</IsWebBootstrapper>
     <UseApplicationTrust>false</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
@@ -63,8 +63,9 @@
     <SignManifests>true</SignManifests>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Newtonsoft.Json, Version=4.5.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <HintPath>..\packages\Newtonsoft.Json.5.0.8\lib\net45\Newtonsoft.Json.dll</HintPath>
+    <Reference Include="Newtonsoft.Json, Version=6.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\Newtonsoft.Json.6.0.8\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
@@ -80,8 +81,9 @@
     <Reference Include="WindowsBase" />
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
-    <Reference Include="YoutubeExtractor">
-      <HintPath>..\packages\YoutubeExtractor.0.10.4.1\lib\net35\YoutubeExtractor.dll</HintPath>
+    <Reference Include="YoutubeExtractor, Version=0.10.6.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\YoutubeExtractor.0.10.6\lib\net35\YoutubeExtractor.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -127,6 +129,25 @@
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
     <AppDesigner Include="Properties\" />
+    <None Include="publish\Application Files\DownloadYouTube_1_0_0_0\DownloadYouTube.application" />
+    <None Include="publish\Application Files\DownloadYouTube_1_0_0_0\DownloadYouTube.exe.config.deploy" />
+    <None Include="publish\Application Files\DownloadYouTube_1_0_0_0\DownloadYouTube.exe.deploy" />
+    <None Include="publish\Application Files\DownloadYouTube_1_0_0_0\DownloadYouTube.exe.manifest" />
+    <None Include="publish\Application Files\DownloadYouTube_1_0_0_0\Newtonsoft.Json.dll.deploy" />
+    <None Include="publish\Application Files\DownloadYouTube_1_0_0_0\YoutubeExtractor.dll.deploy" />
+    <None Include="publish\Application Files\DownloadYouTube_1_0_0_1\DownloadYouTube.application" />
+    <None Include="publish\Application Files\DownloadYouTube_1_0_0_1\DownloadYouTube.exe.config.deploy" />
+    <None Include="publish\Application Files\DownloadYouTube_1_0_0_1\DownloadYouTube.exe.deploy" />
+    <None Include="publish\Application Files\DownloadYouTube_1_0_0_1\DownloadYouTube.exe.manifest" />
+    <None Include="publish\Application Files\DownloadYouTube_1_0_0_1\Newtonsoft.Json.dll.deploy" />
+    <None Include="publish\Application Files\DownloadYouTube_1_0_0_1\YoutubeExtractor.dll.deploy" />
+    <None Include="publish\Application Files\DownloadYouTube_1_0_0_2\DownloadYouTube.application" />
+    <None Include="publish\Application Files\DownloadYouTube_1_0_0_2\DownloadYouTube.exe.config.deploy" />
+    <None Include="publish\Application Files\DownloadYouTube_1_0_0_2\DownloadYouTube.exe.deploy" />
+    <None Include="publish\Application Files\DownloadYouTube_1_0_0_2\DownloadYouTube.exe.manifest" />
+    <None Include="publish\Application Files\DownloadYouTube_1_0_0_2\Newtonsoft.Json.dll.deploy" />
+    <None Include="publish\Application Files\DownloadYouTube_1_0_0_2\YoutubeExtractor.dll.deploy" />
+    <None Include="publish\DownloadYouTube.application" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
@@ -152,6 +173,9 @@
       <ProductName>.NET Framework 3.5 SP1</ProductName>
       <Install>false</Install>
     </BootstrapperPackage>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="publish\setup.exe" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

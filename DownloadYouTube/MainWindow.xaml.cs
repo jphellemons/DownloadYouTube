@@ -44,7 +44,7 @@ namespace DownloadYouTube
                     if (video.RequiresDecryption)
                         DownloadUrlResolver.DecryptDownloadUrl(video);
 
-                    var videoDownloader = new VideoDownloader(video, System.IO.Path.Combine(tbDir.Text, video.Title + video.VideoExtension));
+                    var videoDownloader = new VideoDownloader(video, System.IO.Path.Combine(tbDir.Text, SafeFileName(video.Title) + video.VideoExtension));
 
                     videoDownloader.DownloadProgressChanged += (s, args) => lblMsg.Content = args.ProgressPercentage;
                     try
@@ -62,29 +62,39 @@ namespace DownloadYouTube
             else
             {
                 IEnumerable<VideoInfo> videoInfos = DownloadUrlResolver.GetDownloadUrls(webBrowser.Source.AbsoluteUri);
-                VideoInfo video = videoInfos.Where(info => info.CanExtractAudio).OrderByDescending(info => info.AudioBitrate).First();
-
-                if (video.RequiresDecryption)
+                if (videoInfos.Where(info => info.CanExtractAudio).Count() > 0)
                 {
-                    DownloadUrlResolver.DecryptDownloadUrl(video);
-                }
+                    VideoInfo video = videoInfos.Where(info => info.CanExtractAudio).OrderByDescending(info => info.AudioBitrate).First();
 
-                var audioDownloader = new AudioDownloader(video, System.IO.Path.Combine(tbDir.Text, video.Title + video.AudioExtension));
+                    if (video.RequiresDecryption)
+                    {
+                        DownloadUrlResolver.DecryptDownloadUrl(video);
+                    }
 
-                audioDownloader.DownloadProgressChanged += (s, args) => lblMsg.Content = args.ProgressPercentage * 0.85;
-                audioDownloader.AudioExtractionProgressChanged += (s, args) => lblMsg.Content = 85 + args.ProgressPercentage * 0.15;
-                try
-                {
-                    audioDownloader.Execute();
-                    lblMsg.Content = "Completed!";
-                    Process.Start(tbDir.Text);
+                    var audioDownloader = new AudioDownloader(video, System.IO.Path.Combine(tbDir.Text, SafeFileName(video.Title) + video.AudioExtension));
+
+                    audioDownloader.DownloadProgressChanged += (s, args) => lblMsg.Content = args.ProgressPercentage * 0.85;
+                    audioDownloader.AudioExtractionProgressChanged += (s, args) => lblMsg.Content = 85 + args.ProgressPercentage * 0.15;
+                    try
+                    {
+                        audioDownloader.Execute();
+                        lblMsg.Content = "Completed!";
+                        Process.Start(tbDir.Text);
+                    }
+                    catch (UnauthorizedAccessException uae)
+                    {
+                        lblMsg.Content = "You are not allowed to write in this folder, please select an other destination folder to store the video";
+                        System.Diagnostics.Debug.WriteLine(uae.Message);
+                    }
                 }
-                catch (UnauthorizedAccessException uae)
-                {
-                    lblMsg.Content = "You are not allowed to write in this folder, please select an other destination folder to store the video";
-                    System.Diagnostics.Debug.WriteLine(uae.Message);
-                }
+                else
+                    lblMsg.Content = "Sorry, cannot extract audio for this video";
             }
+        }
+
+        private string SafeFileName(string title)
+        {
+            return title.Replace("|", " ").Replace(".", " ");
         }
 
         private void WebBrowser_Navigated(object sender, NavigationEventArgs e)
@@ -99,6 +109,8 @@ namespace DownloadYouTube
                     btnDownload.Visibility = System.Windows.Visibility.Visible;
                     options.Visibility = System.Windows.Visibility.Visible;
                     options.ItemsSource = videoInfos.OrderByDescending(i => i.Resolution).Where(p => p.AudioBitrate > 0);
+                    if (videoInfos.Count() > 0)
+                        options.SelectedIndex = 0;
                 }
                 catch {
                     btnDownload.Visibility = System.Windows.Visibility.Collapsed;

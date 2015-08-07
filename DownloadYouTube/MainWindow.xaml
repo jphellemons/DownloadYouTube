@@ -21,14 +21,14 @@
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="{Binding Resolution}"/>
-                            <TextBlock Text="{Binding VideoType}"/>
+                            <TextBlock Text="{Binding Resolution}" Margin="0,0,10,0"/>
+                            <TextBlock Text="{Binding VideoType}" HorizontalAlignment="Right"/>
 
                         </StackPanel>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>
-            <Button x:Name="btnDownload" Visibility="Collapsed" Click="btnDownload_Click" HorizontalAlignment="Center" Content="Download Youtube" Margin="15" FontSize="16"/>
+            <Button x:Name="btnDownload" Visibility="Collapsed" Click="btnDownload_Click" HorizontalAlignment="Center" Content="Download Youtube" Margin="20" FontSize="16"/>
             <Label x:Name="lblMsg" VerticalAlignment="Center" Height="9" Margin="5.6,53.2,-0.4,48.2" />
         </StackPanel>        
     </Grid>

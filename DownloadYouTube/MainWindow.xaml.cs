@@ -94,7 +94,7 @@ namespace DownloadYouTube
 
         private string SafeFileName(string title)
         {
-            return title.Replace("|", " ").Replace(".", " ");
+            return title.Replace("\\", " ").Replace("/", " ").Replace("|", " ").Replace(".", " ");
         }
 
         private void WebBrowser_Navigated(object sender, NavigationEventArgs e)

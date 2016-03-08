@@ -94,7 +94,7 @@ namespace DownloadYouTube
 
         private string SafeFileName(string title)
         {
-            return title.Replace("\\", " ").Replace("/", " ").Replace("|", " ").Replace(".", " ");
+            return title.Replace("\\", " ").Replace("/", " ").Replace("|", " ").Replace(".", " ").Replace("[", "").Replace("]", "").Replace("\"", "");
         }
 
         private void WebBrowser_Navigated(object sender, NavigationEventArgs e)
@@ -112,7 +112,7 @@ namespace DownloadYouTube
                     if (videoInfos.Count() > 0)
                         options.SelectedIndex = 0;
                 }
-                catch {
+                catch (Exception ex) {
                     btnDownload.Visibility = System.Windows.Visibility.Collapsed;
                     options.Visibility = System.Windows.Visibility.Collapsed;
                 }

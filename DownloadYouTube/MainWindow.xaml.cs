@@ -17,6 +17,11 @@ using YoutubeExtractor;
 using System.Reflection;
 using System.Windows.Threading;
 using System.Diagnostics;
+using System.Windows.Forms;
+using System.Net;
+using System.Drawing;
+using TagLib;
+using Gecko;
 
 namespace DownloadYouTube
 {
@@ -25,10 +30,49 @@ namespace DownloadYouTube
     /// </summary>
     public partial class MainWindow : Window
     {
+        VideoInfo viAudio;
+        VideoInfo viVideo;
+
         public MainWindow()
         {
             InitializeComponent();
             tbDir.Text = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+
+            Gecko.Xpcom.Initialize("Firefox");
+            GeckoWebBrowser browser = new GeckoWebBrowser();
+            browser.Navigated += Browser_Navigated;
+            host.Child = browser;
+            browser.Navigate("http://www.youtube.com");
+        }
+
+        private void Browser_Navigated(object sender, GeckoNavigatedEventArgs e)
+        {
+            string newUrl = ((GeckoWebBrowser)sender).Url.AbsoluteUri;
+            if (!newUrl.Equals("http://www.youtube.com/") && !newUrl.Equals("https://www.youtube.com/") && !newUrl.Contains("results?search_query")) // first run + search result
+            {
+                try
+                {
+                    IEnumerable<VideoInfo> videoInfos = DownloadUrlResolver.GetDownloadUrls(newUrl);
+                    btnDownload.Visibility = Visibility.Visible;
+
+                    viAudio = videoInfos.Where(i => i.VideoType == VideoType.Mp4 && i.Resolution == 0 && i.AudioBitrate > 0).OrderByDescending(q => q.AudioBitrate).First();
+                    viVideo = videoInfos.Where(p => p.AudioBitrate > 0).OrderByDescending(i => i.Resolution).ThenByDescending(a => a.AudioBitrate).First();
+
+                }
+                catch (VideoNotAvailableException vnae)
+                {
+                    lblMsg.Content = vnae.Message;
+                    Console.WriteLine(vnae.Message);
+                    Console.WriteLine(vnae.StackTrace);
+                    btnDownload.Visibility = Visibility.Collapsed;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.Message);
+                    Console.WriteLine(ex.StackTrace);
+                    btnDownload.Visibility = Visibility.Collapsed;
+                }
+            }
         }
 
         private void btnDownload_Click(object sender, RoutedEventArgs e)
@@ -36,15 +80,12 @@ namespace DownloadYouTube
             lblMsg.Content = "Download started";
             if (rbvideo.IsChecked == true) // because nullable
             {
-                var video = (VideoInfo)options.SelectedItem;
-
-                Application.Current.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
+                System.Windows.Application.Current.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
                 {
+                    if (viVideo.RequiresDecryption)
+                        DownloadUrlResolver.DecryptDownloadUrl(viVideo);
 
-                    if (video.RequiresDecryption)
-                        DownloadUrlResolver.DecryptDownloadUrl(video);
-
-                    var videoDownloader = new VideoDownloader(video, System.IO.Path.Combine(tbDir.Text, SafeFileName(video.Title) + video.VideoExtension));
+                    var videoDownloader = new VideoDownloader(viVideo, System.IO.Path.Combine(tbDir.Text, SafeFileName(viVideo.Title) + viVideo.VideoExtension));
 
                     videoDownloader.DownloadProgressChanged += (s, args) => lblMsg.Content = args.ProgressPercentage;
                     try
@@ -55,41 +96,86 @@ namespace DownloadYouTube
                     }
                     catch (UnauthorizedAccessException uae)
                     {
+                        Console.WriteLine(uae.Message);
+                        Console.WriteLine(uae.StackTrace);
                         lblMsg.Content = "You are not allowed to write in this folder, please select an other destination folder to store the video";
                     }
                 }));
             }
             else
             {
-                IEnumerable<VideoInfo> videoInfos = DownloadUrlResolver.GetDownloadUrls(webBrowser.Source.AbsoluteUri);
-                if (videoInfos.Where(info => info.CanExtractAudio).Count() > 0)
+                System.Windows.Application.Current.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
                 {
-                    VideoInfo video = videoInfos.Where(info => info.CanExtractAudio).OrderByDescending(info => info.AudioBitrate).First();
+                    if (viAudio.RequiresDecryption)
+                        DownloadUrlResolver.DecryptDownloadUrl(viAudio);
 
-                    if (video.RequiresDecryption)
-                    {
-                        DownloadUrlResolver.DecryptDownloadUrl(video);
-                    }
+                    var videoDownloader = new VideoDownloader(viAudio, System.IO.Path.Combine(tbDir.Text, SafeFileName(viAudio.Title) + ".M4A"));
 
-                    var audioDownloader = new AudioDownloader(video, System.IO.Path.Combine(tbDir.Text, SafeFileName(video.Title) + video.AudioExtension));
+                    videoDownloader.DownloadProgressChanged += (s, args) => lblMsg.Content = args.ProgressPercentage;
 
-                    audioDownloader.DownloadProgressChanged += (s, args) => lblMsg.Content = args.ProgressPercentage * 0.85;
-                    audioDownloader.AudioExtractionProgressChanged += (s, args) => lblMsg.Content = 85 + args.ProgressPercentage * 0.15;
                     try
                     {
-                        audioDownloader.Execute();
+                        videoDownloader.Execute();
+                        ProcessAudio(System.IO.Path.Combine(tbDir.Text, SafeFileName(viAudio.Title) + ".M4A"));
+
                         lblMsg.Content = "Completed!";
                         Process.Start(tbDir.Text);
                     }
                     catch (UnauthorizedAccessException uae)
                     {
+                        Console.WriteLine(uae.Message);
+                        Console.WriteLine(uae.StackTrace);
                         lblMsg.Content = "You are not allowed to write in this folder, please select an other destination folder to store the video";
-                        System.Diagnostics.Debug.WriteLine(uae.Message);
                     }
-                }
-                else
-                    lblMsg.Content = "Sorry, cannot extract audio for this video";
+                    catch (IOException ioe)
+                    {
+                        Console.WriteLine(ioe.Message);
+                        Console.WriteLine(ioe.StackTrace);
+                    }
+                    catch (WebException wex)
+                    {
+                        Console.WriteLine(wex.Message);
+                        Console.WriteLine(wex.StackTrace);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine(ex.Message);
+                        Console.WriteLine(ex.StackTrace);
+                    }
+                }));
             }
+        }
+
+        private void ProcessAudio(string fileIn)
+        {
+            TagLib.File f = TagLib.File.Create(fileIn);
+            string artists = viAudio.Title;
+            string title = viAudio.Title;
+
+            if (viAudio.Title.Contains("-"))
+            {
+                artists = viAudio.Title.Substring(0, viAudio.Title.IndexOf("-")).Trim();
+                title = viAudio.Title.Substring(viAudio.Title.IndexOf("-") + 1).Trim();
+            }
+
+            f.Tag.Album = viAudio.Title;
+            f.Tag.Title = title;
+            f.Tag.Performers = new string[] { artists };
+
+            WebClient wc = new WebClient();
+            using (MemoryStream ms = new MemoryStream(wc.DownloadData(viAudio.ThumbnailUrl)))
+            {
+                byte[] myBytes = ms.ToArray();
+                ByteVector byteVector = new ByteVector(myBytes, myBytes.Length);
+                TagLib.Picture picture = new Picture(byteVector);
+
+                f.Tag.Pictures = new TagLib.IPicture[]
+                {
+                    picture
+                };
+            }
+            
+            f.Save();
         }
 
         private string SafeFileName(string title)
@@ -97,45 +183,13 @@ namespace DownloadYouTube
             return title.Replace("\\", " ").Replace("/", " ").Replace("|", " ").Replace(".", " ").Replace("[", "").Replace("]", "").Replace("\"", "");
         }
 
-        private void WebBrowser_Navigated(object sender, NavigationEventArgs e)
-        {
-            HideScriptErrors(webBrowser, true);
-            string newUrl = webBrowser.Source.AbsoluteUri;
-            if (!newUrl.Equals("http://www.youtube.com/") && !newUrl.Equals("https://www.youtube.com/")) // first run
-            {
-                try
-                {
-                    IEnumerable<VideoInfo> videoInfos = DownloadUrlResolver.GetDownloadUrls(newUrl);
-                    btnDownload.Visibility = System.Windows.Visibility.Visible;
-                    options.Visibility = System.Windows.Visibility.Visible;
-                    options.ItemsSource = videoInfos.OrderByDescending(i => i.Resolution).Where(p => p.AudioBitrate > 0);
-                    if (videoInfos.Count() > 0)
-                        options.SelectedIndex = 0;
-                }
-                catch (Exception ex) {
-                    btnDownload.Visibility = System.Windows.Visibility.Collapsed;
-                    options.Visibility = System.Windows.Visibility.Collapsed;
-                }
-            }
-        }
-
         private void btnDir_Click(object sender, RoutedEventArgs e)
         {
-            var dialog = new System.Windows.Forms.FolderBrowserDialog();
-            System.Windows.Forms.DialogResult result = dialog.ShowDialog();
-            if (result == System.Windows.Forms.DialogResult.OK)
-            {
-                tbDir.Text = dialog.SelectedPath;
-            }
-        }
+            var dialog = new FolderBrowserDialog();
+            DialogResult result = dialog.ShowDialog();
 
-        private void HideScriptErrors(WebBrowser wb, bool Hide)
-        {
-            FieldInfo fiComWebBrowser = typeof(WebBrowser).GetField("_axIWebBrowser2", BindingFlags.Instance | BindingFlags.NonPublic);
-            if (fiComWebBrowser == null) return;
-            object objComWebBrowser = fiComWebBrowser.GetValue(wb);
-            if (objComWebBrowser == null) return;
-            objComWebBrowser.GetType().InvokeMember("Silent", BindingFlags.SetProperty, null, objComWebBrowser, new object[] { Hide });
+            if (result == System.Windows.Forms.DialogResult.OK)
+                tbDir.Text = dialog.SelectedPath;
         }
     }
 }

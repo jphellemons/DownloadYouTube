@@ -7,8 +7,9 @@
             <ColumnDefinition Width="1*"/>
             <ColumnDefinition Width="3*"/>
         </Grid.ColumnDefinitions>
-        <WebBrowser x:Name="webBrowser" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Margin="0,0,0,0" 
-                    Grid.Column="1" Grid.Row="0" Source="http://www.youtube.com"  Navigated="WebBrowser_Navigated"/>
+        <WindowsFormsHost x:Name="host" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Margin="0,0,0,0" >
+            
+        </WindowsFormsHost>
         <StackPanel Grid.Column="0" Grid.Row="0" Background="#FFB7CCE1" Orientation="Vertical">
             <TextBlock Text="Downloadfolder:" FontSize="16" Margin="10"/>
             <StackPanel Orientation="Horizontal">
@@ -16,20 +17,14 @@
                 <Button x:Name="btnDir" Content="&#xE10c;" FontFamily="Segoe UI Symbol" Margin="0,10,10,10" Click="btnDir_Click" VerticalAlignment="Center" FontSize="16" Height="24"/>
             </StackPanel>
             <RadioButton Name="rbvideo" Content="Video" IsChecked="True" GroupName="rbtype" FontSize="16" Margin="10" />
-            <RadioButton Name="rbaudio" Content="Audio only" GroupName="rbtype" FontSize="16" Margin="10" />
-            <ListBox x:Name="options" Visibility="Collapsed" Margin="0,1.2,5.4,0.2">
-                <ListBox.ItemTemplate>
-                    <DataTemplate>
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="{Binding Resolution}" Margin="0,0,10,0"/>
-                            <TextBlock Text="{Binding VideoType}" HorizontalAlignment="Right"/>
-
-                        </StackPanel>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
-            <Button x:Name="btnDownload" Visibility="Collapsed" Click="btnDownload_Click" HorizontalAlignment="Center" Content="Download Youtube" Margin="20" FontSize="16"/>
-            <Label x:Name="lblMsg" VerticalAlignment="Center" Height="9" Margin="5.6,53.2,-0.4,48.2" />
-        </StackPanel>        
+            <RadioButton Name="rbaudio" Content="Audio" GroupName="rbtype" FontSize="16" Margin="10" />
+            <Button x:Name="btnDownload" Visibility="Collapsed" Click="btnDownload_Click" HorizontalAlignment="Center" Margin="20" FontSize="16" Padding="5">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock FontFamily="Segoe UI Symbol" Text="&#xE118;"/>
+                    <TextBlock Text=" Download"/>
+                </StackPanel>
+            </Button>
+            <Label x:Name="lblMsg" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Bold" />
+        </StackPanel>
     </Grid>
 </Window>

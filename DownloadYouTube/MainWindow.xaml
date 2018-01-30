@@ -8,23 +8,29 @@
             <ColumnDefinition Width="3*"/>
         </Grid.ColumnDefinitions>
         <WindowsFormsHost x:Name="host" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Margin="0,0,0,0" >
-            
+
         </WindowsFormsHost>
         <StackPanel Grid.Column="0" Grid.Row="0" Background="#FFB7CCE1" Orientation="Vertical">
-            <TextBlock Text="Downloadfolder:" FontSize="16" Margin="10"/>
-            <StackPanel Orientation="Horizontal">
-                <TextBox x:Name="tbDir" Text="C:\" Margin="10,10,0,10" VerticalAlignment="Center" FontSize="16" Height="24" />
-                <Button x:Name="btnDir" Content="&#xE10c;" FontFamily="Segoe UI Symbol" Margin="0,10,10,10" Click="btnDir_Click" VerticalAlignment="Center" FontSize="16" Height="24"/>
-            </StackPanel>
-            <RadioButton Name="rbvideo" Content="Video" IsChecked="True" GroupName="rbtype" FontSize="16" Margin="10" />
-            <RadioButton Name="rbaudio" Content="Audio" GroupName="rbtype" FontSize="16" Margin="10" />
-            <Button x:Name="btnDownload" Visibility="Collapsed" Click="btnDownload_Click" HorizontalAlignment="Center" Margin="20" FontSize="16" Padding="5">
+            <TextBlock Text="Downloadfolder:" FontSize="16" Margin="12"/>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" MinWidth="180"/>
+                    <ColumnDefinition Width="54"/>
+                </Grid.ColumnDefinitions>
+                <TextBox x:Name="tbDir" Grid.Column="0" Text="C:\" Margin="12" VerticalAlignment="Center" FontSize="16" Height="24" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" />
+                <Button x:Name="btnDir" Grid.Column="1" Content="&#xE10c;" FontFamily="Segoe UI Symbol" Margin="12,12,12,12" Click="btnDir_Click" VerticalAlignment="Center" FontSize="16" Height="24"/>
+            </Grid>
+            <RadioButton Name="rbvideo" Content="Video" IsChecked="True" GroupName="rbtype" FontSize="16" Margin="12" />
+            <RadioButton Name="rbaudio" Content="Audio" GroupName="rbtype" FontSize="16" Margin="12" />
+            <CheckBox Name="cbPlaylist" Content="Is playlist?" Margin="12" FontSize="16" />
+            <Button x:Name="btnDownload" Visibility="Collapsed" Click="btnDownload_Click" HorizontalAlignment="Center" Margin="12" FontSize="16" Padding="4">
                 <StackPanel Orientation="Horizontal">
                     <TextBlock FontFamily="Segoe UI Symbol" Text="&#xE118;"/>
                     <TextBlock Text=" Download"/>
                 </StackPanel>
             </Button>
             <Label x:Name="lblMsg" VerticalAlignment="Center" HorizontalAlignment="Center" FontWeight="Bold" />
+            <TextBlock x:Name="lblPro" Padding="4" HorizontalAlignment="Center" Background="Yellow" TextWrapping="WrapWithOverflow" Margin="4">Pro tip: Point to the local Onedrive, Dropbox, Google drive folder to have the video/audio auto sync to your phone</TextBlock>
         </StackPanel>
     </Grid>
 </Window>

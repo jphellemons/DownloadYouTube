@@ -30,8 +30,8 @@ namespace DownloadYouTube
     /// </summary>
     public partial class MainWindow : Window
     {
-        VideoInfo viAudio;
-        VideoInfo viVideo;
+        List<VideoInfo> viAudio;
+        List<VideoInfo> viVideo;
 
         public MainWindow()
         {
@@ -48,16 +48,38 @@ namespace DownloadYouTube
         private void Browser_Navigated(object sender, GeckoNavigatedEventArgs e)
         {
             string newUrl = ((GeckoWebBrowser)sender).Url.AbsoluteUri;
+            viAudio = new List<VideoInfo>();
+            viVideo = new List<VideoInfo>();
+
             if (!newUrl.Equals("http://www.youtube.com/") && !newUrl.Equals("https://www.youtube.com/") && !newUrl.Contains("results?search_query")) // first run + search result
             {
                 try
                 {
-                    IEnumerable<VideoInfo> videoInfos = DownloadUrlResolver.GetDownloadUrls(newUrl);
-                    btnDownload.Visibility = Visibility.Visible;
+                    if (newUrl.Contains("list") && cbPlaylist.IsChecked.Value) // match both playlist and list
+                    {
+                        using (var wc = new WebClient())
+                        {
+                            var doc = new HtmlAgilityPack.HtmlDocument();
+                            doc.LoadHtml(wc.DownloadString(newUrl));
 
-                    viAudio = videoInfos.Where(i => i.VideoType == VideoType.Mp4 && i.Resolution == 0 && i.AudioBitrate > 0).OrderByDescending(q => q.AudioBitrate).First();
-                    viVideo = videoInfos.Where(p => p.AudioBitrate > 0).OrderByDescending(i => i.Resolution).ThenByDescending(a => a.AudioBitrate).First();
+                            foreach (var a in doc.DocumentNode.Descendants("a").Where(c => c.HasClass("playlist-video")))
+                            {
+                                string tmpUrl = a.Attributes["href"].Value;
+                                var tmpVis = DownloadUrlResolver.GetDownloadUrls(tmpUrl);
+                                viAudio.Add(tmpVis.Where(i => i.VideoType == VideoType.Mp4 && i.Resolution == 0 && i.AudioBitrate > 0).OrderByDescending(q => q.AudioBitrate).First()); // playlist alleen voor audio
+                                viVideo.Add(tmpVis.Where(p => p.AudioBitrate > 0).OrderByDescending(i => i.Resolution).ThenByDescending(b => b.AudioBitrate).First()); // playlist alleen voor video
+                            }
+                            btnDownload.Visibility = Visibility.Visible;
+                        }
+                    }
+                    else
+                    {
+                        IEnumerable<VideoInfo> videoInfos = DownloadUrlResolver.GetDownloadUrls(newUrl);
+                        btnDownload.Visibility = Visibility.Visible;
 
+                        viAudio.Add(videoInfos.Where(i => i.VideoType == VideoType.Mp4 && i.Resolution == 0 && i.AudioBitrate > 0).OrderByDescending(q => q.AudioBitrate).First());
+                        viVideo.Add(videoInfos.Where(p => p.AudioBitrate > 0).OrderByDescending(i => i.Resolution).ThenByDescending(b => b.AudioBitrate).First());
+                    }
                 }
                 catch (VideoNotAvailableException vnae)
                 {
@@ -80,90 +102,95 @@ namespace DownloadYouTube
             lblMsg.Content = "Download started";
             if (rbvideo.IsChecked == true) // because nullable
             {
-                System.Windows.Application.Current.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
+                foreach (var vi in viVideo)
                 {
-                    if (viVideo.RequiresDecryption)
-                        DownloadUrlResolver.DecryptDownloadUrl(viVideo);
-
-                    var videoDownloader = new VideoDownloader(viVideo, System.IO.Path.Combine(tbDir.Text, SafeFileName(viVideo.Title) + viVideo.VideoExtension));
-
-                    videoDownloader.DownloadProgressChanged += (s, args) => lblMsg.Content = args.ProgressPercentage;
-                    try
+                    System.Windows.Application.Current.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
                     {
-                        videoDownloader.Execute();
-                        lblMsg.Content = "Completed!";
-                        Process.Start(tbDir.Text);
-                    }
-                    catch (UnauthorizedAccessException uae)
-                    {
-                        Console.WriteLine(uae.Message);
-                        Console.WriteLine(uae.StackTrace);
-                        lblMsg.Content = "You are not allowed to write in this folder, please select an other destination folder to store the video";
-                    }
-                }));
+                        if (vi.RequiresDecryption)
+                            DownloadUrlResolver.DecryptDownloadUrl(vi);
+
+                        var videoDownloader = new VideoDownloader(vi, System.IO.Path.Combine(tbDir.Text, SafeFileName(vi.Title) + vi.VideoExtension));
+
+                        videoDownloader.DownloadProgressChanged += (s, args) => lblMsg.Content = args.ProgressPercentage;
+                        try
+                        {
+                            videoDownloader.Execute();
+                        }
+                        catch (UnauthorizedAccessException uae)
+                        {
+                            Console.WriteLine(uae.Message);
+                            Console.WriteLine(uae.StackTrace);
+                            lblMsg.Content = "You are not allowed to write in this folder, please select an other destination folder to store the video";
+                        }
+                    }));
+                }
+                lblMsg.Content = "Completed!";
+                Process.Start(tbDir.Text);
             }
             else
             {
-                System.Windows.Application.Current.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
+                foreach (var vi in viAudio)
                 {
-                    if (viAudio.RequiresDecryption)
-                        DownloadUrlResolver.DecryptDownloadUrl(viAudio);
+                    System.Windows.Application.Current.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
+                    {
+                        if (vi.RequiresDecryption)
+                            DownloadUrlResolver.DecryptDownloadUrl(vi);
 
-                    var videoDownloader = new VideoDownloader(viAudio, System.IO.Path.Combine(tbDir.Text, SafeFileName(viAudio.Title) + ".M4A"));
+                        var videoDownloader = new VideoDownloader(vi, System.IO.Path.Combine(tbDir.Text, SafeFileName(vi.Title) + ".M4A"));
 
-                    videoDownloader.DownloadProgressChanged += (s, args) => lblMsg.Content = args.ProgressPercentage;
+                        videoDownloader.DownloadProgressChanged += (s, args) => lblMsg.Content = args.ProgressPercentage;
 
-                    try
-                    {
-                        videoDownloader.Execute();
-                        ProcessAudio(System.IO.Path.Combine(tbDir.Text, SafeFileName(viAudio.Title) + ".M4A"));
-
-                        lblMsg.Content = "Completed!";
-                        Process.Start(tbDir.Text);
-                    }
-                    catch (UnauthorizedAccessException uae)
-                    {
-                        Console.WriteLine(uae.Message);
-                        Console.WriteLine(uae.StackTrace);
-                        lblMsg.Content = "You are not allowed to write in this folder, please select an other destination folder to store the video";
-                    }
-                    catch (IOException ioe)
-                    {
-                        Console.WriteLine(ioe.Message);
-                        Console.WriteLine(ioe.StackTrace);
-                    }
-                    catch (WebException wex)
-                    {
-                        Console.WriteLine(wex.Message);
-                        Console.WriteLine(wex.StackTrace);
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine(ex.Message);
-                        Console.WriteLine(ex.StackTrace);
-                    }
-                }));
+                        try
+                        {
+                            videoDownloader.Execute();
+                            ProcessAudio(vi, System.IO.Path.Combine(tbDir.Text, SafeFileName(vi.Title) + ".M4A"));
+                        }
+                        catch (UnauthorizedAccessException uae)
+                        {
+                            Console.WriteLine(uae.Message);
+                            Console.WriteLine(uae.StackTrace);
+                            lblMsg.Content = "You are not allowed to write in this folder, please select an other destination folder to store the video";
+                        }
+                        catch (IOException ioe)
+                        {
+                            Console.WriteLine(ioe.Message);
+                            Console.WriteLine(ioe.StackTrace);
+                        }
+                        catch (WebException wex)
+                        {
+                            Console.WriteLine(wex.Message);
+                            Console.WriteLine(wex.StackTrace);
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine(ex.Message);
+                            Console.WriteLine(ex.StackTrace);
+                        }
+                    }));
+                }
+                lblMsg.Content = "Completed!";
+                Process.Start(tbDir.Text);
             }
         }
 
-        private void ProcessAudio(string fileIn)
+        private void ProcessAudio(VideoInfo vi, string fileIn)
         {
             TagLib.File f = TagLib.File.Create(fileIn);
-            string artists = viAudio.Title;
-            string title = viAudio.Title;
+            string artists = vi.Title;
+            string title = vi.Title;
 
-            if (viAudio.Title.Contains("-"))
+            if (vi.Title.Contains("-"))
             {
-                artists = viAudio.Title.Substring(0, viAudio.Title.IndexOf("-")).Trim();
-                title = viAudio.Title.Substring(viAudio.Title.IndexOf("-") + 1).Trim();
+                artists = vi.Title.Substring(0, vi.Title.IndexOf("-")).Trim();
+                title = vi.Title.Substring(vi.Title.IndexOf("-") + 1).Trim();
             }
 
-            f.Tag.Album = viAudio.Title;
+            f.Tag.Album = vi.Title;
             f.Tag.Title = title;
             f.Tag.Performers = new string[] { artists };
 
             WebClient wc = new WebClient();
-            using (MemoryStream ms = new MemoryStream(wc.DownloadData(viAudio.ThumbnailUrl)))
+            using (MemoryStream ms = new MemoryStream(wc.DownloadData(vi.ThumbnailUrl)))
             {
                 byte[] myBytes = ms.ToArray();
                 ByteVector byteVector = new ByteVector(myBytes, myBytes.Length);
@@ -180,7 +207,7 @@ namespace DownloadYouTube
 
         private string SafeFileName(string title)
         {
-            return title.Replace("\\", " ").Replace("/", " ").Replace("|", " ").Replace(".", " ").Replace("[", "").Replace("]", "").Replace("\"", "");
+            return title.Replace("\\", " ").Replace("/", " ").Replace("|", " ").Replace(".", " ").Replace("[", "").Replace("]", "").Replace("\"", "").Replace("?", "");
         }
 
         private void btnDir_Click(object sender, RoutedEventArgs e)

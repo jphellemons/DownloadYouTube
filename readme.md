@@ -16,7 +16,7 @@ The reason why I chose to make a Windows application instead of a webapplication
 - Windows Vista (sp2) or higher
 
 ## License
-This code is based on parts with MIT and GPLv2 licenses
+This code is based on parts with MIT and GPLv2 licenses. Icon used is from [dakirby309](http://www.iconarchive.com/artist/dakirby309.html) and has a CC license. http://www.iconarchive.com/show/windows-8-metro-icons-by-dakirby309/Web-YouTube-Metro-icon.html
 
 ## Privacy
 Well, the source is open and no user data is stored. GDPR compliant etc. You can file issues and PR's
